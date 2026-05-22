@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>使命召唤：几何战争</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh; background-color: #000; color: #0ff; font-family: 'Courier New', Courier, monospace; user-select: none; }
+        #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; text-shadow: 0 0 5px #0ff; z-index: 100; }
+        
+        /* 登录界面 UI */
+        #loginUI { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 10, 20, 0.95); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        #loginUI h1 { color: #0ff; font-size: 72px; text-shadow: 0 0 30px #0ff, 0 0 10px #0ff; margin-bottom: 10px; font-weight: bold; font-style: italic; letter-spacing: 2px;}
+        #loginUI h3 { color: #888; font-size: 24px; margin-bottom: 50px; letter-spacing: 5px;}
+        #loginUI input { padding: 15px; font-size: 24px; background: #111; color: #0ff; border: 2px solid #05f; text-align: center; margin-bottom: 30px; outline: none; width: 400px; box-shadow: inset 0 0 10px #000; }
+        #loginUI input:focus { border-color: #0ff; box-shadow: 0 0 15px #0ff; }
+        .login-btn-container { display: flex; gap: 20px; }
+        .login-btn { padding: 15px 40px; font-size: 24px; background: #111; color: #0ff; border: 2px solid #0ff; cursor: pointer; transition: 0.2s; font-family: 'Courier New', monospace; font-weight: bold;}
+        .login-btn:hover { background: #0ff; color: #000; box-shadow: 0 0 30px #0ff; }
+
+        #waveDisplay { position: absolute; top: 20px; width: 100%; text-align: center; font-size: 40px; color: #ff2222; font-weight: bold; text-shadow: 0 0 15px #ff0000; pointer-events: none; z-index: 100; }
+        #medalDisplay { position: absolute; top: 80px; width: 100%; text-align: center; font-size: 60px; pointer-events: none; z-index: 100; opacity: 0; transform: scale(0.5); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-shadow: 0 0 20px #ff0, 0 0 10px #f00; }
+        .medal-show { opacity: 1 !important; transform: scale(1) !important; }
+        #subtitleUI { position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: bold; text-align: center; text-shadow: 2px 2px 4px #000; pointer-events: none; z-index: 100; transition: opacity 0.2s; opacity: 0; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 5px;}
+        #centerMsg { position: absolute; top: 15%; width: 100%; text-align: center; font-size: 28px; color: #0f0; text-shadow: 0 0 10px #0f0; pointer-events: none; display: none; z-index: 99; transition: opacity 0.5s; }
+        #interactionPrompt { position: absolute; bottom: 20%; width: 100%; text-align: center; font-size: 24px; color: #fff; text-shadow: 0 0 10px #fff; pointer-events: none; display: none; z-index: 99; background: rgba(0, 0, 0, 0.5); padding: 10px 0; }
+        #gameOverUI { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 200; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px); }
+
+        /* 左下角 UI */
+        #playerUI { position: absolute; bottom: 30px; left: 20px; display: flex; align-items: flex-end; pointer-events: none; z-index: 100; text-shadow: 1px 1px 2px #000; }
+        .avatar { width: 75px; height: 75px; background-color: #222; border: 2px solid #666; border-radius: 5px; margin-right: 15px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="75" height="75"><rect width="75" height="75" fill="%23444"/><circle cx="37.5" cy="30" r="18" fill="%23aaa"/><path d="M10 75 Q37.5 45 65 75" stroke="%23aaa" stroke-width="10" fill="none"/></svg>'); background-size: cover; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .player-info { display: flex; flex-direction: column; justify-content: flex-end; }
+        .nickname { font-size: 18px; color: #fff; margin-bottom: 5px; font-weight: bold; background: rgba(0,0,0,0.4); padding: 2px 5px; border-radius: 3px; display: inline-block;}
+        .status-bars-container { display: flex; align-items: flex-end; margin-bottom: 8px;}
+        .status-bars { width: 220px; }
+        .bar-bg { width: 100%; height: 14px; background: #222; border: 1px solid #555; margin-bottom: 4px; box-shadow: inset 0 0 5px #000; position: relative;}
+        .hp-fill { height: 100%; background: #00ff00; transition: width 0.1s linear; }
+        .armor-fill { height: 100%; background: linear-gradient(90deg, #0044aa, #00aaff); transition: width 0.1s linear; }
+        .bar-text { position: absolute; top: -2px; left: 5px; font-size: 12px; color: #fff; font-weight: bold; text-shadow: 1px 1px 1px #000; }
+        #reviveUI { margin-left: 10px; margin-bottom: 4px; padding: 5px 8px; background: rgba(0, 50, 0, 0.7); border: 1px solid #0f0; border-radius: 4px; color: #0f0; font-size: 14px; font-weight: bold; box-shadow: 0 0 5px #0f0;}
+        .economy-stats { display: flex; gap: 20px; font-weight: bold; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; border: 1px solid #444;}
+        .coin-text { font-size: 22px; color: #ffd700; }
+        .score-text { font-size: 22px; color: #fff; }
+
+        /* 底部居中汽水 Buff UI */
+        #perksDisplay { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; pointer-events: none; z-index: 100; }
+        .perk-icon { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #fff; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: #000; opacity: 0.2; background: #222; transition: all 0.3s; box-shadow: 0 0 5px #000; }
+        .perk-owned { opacity: 1.0; box-shadow: 0 0 20px currentColor; transform: scale(1.1); }
+
+        /* 右侧战术道具 UI */
+        #equipmentUI { position: absolute; top: 50%; right: 20px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; pointer-events: none; z-index: 100; text-align: center; }
+        .equip-slot { background: rgba(0,0,0,0.7); border: 2px solid #555; width: 68px; height: 68px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 4px; color: #888; transition: all 0.2s; box-sizing: border-box; box-shadow: 2px 2px 10px rgba(0,0,0,0.8); }
+        .equip-active { color: #fff; border-color: #0ff; box-shadow: 0 0 15px #0ff; background: rgba(0, 50, 50, 0.7); }
+        .equip-key { font-weight: bold; color: #ff0; font-size: 13px; margin-bottom: 2px; }
+        .equip-name { font-size: 12px; }
+        .equip-count { font-size: 18px; font-weight: bold; margin-top: 2px; color: #0ff; }
+
+        /* 右下角武器系统 UI */
+        #weaponUI { position: absolute; bottom: 30px; right: 40px; text-align: right; pointer-events: none; text-shadow: 0 0 10px #0ff; z-index: 100; }
+        #grenadeUI { margin-bottom: 10px; font-size: 16px; color: #ccc; font-weight: bold; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; border: 1px solid #666; display: inline-block;}
+        #inactiveWeapons { margin-bottom: 5px; text-align: right; }
+        .inactive-wep { color: #888; font-size: 18px; margin-bottom: 2px; text-shadow: none; font-weight: bold; }
+        #weaponNameDisplay { font-size: 24px; color: #fff; margin-bottom: -5px; background: rgba(0,0,0,0.5); padding: 2px 10px; border-radius: 5px; display: inline-block; }
+        #ammoDisplay { font-size: 56px; color: #0ff; font-weight: bold; }
+        .reserve-ammo { font-size: 32px; color: #aaa; }
+
+        /* 金手指 */
+        #cheatToggleBtn { position: absolute; top: 20px; right: 20px; padding: 10px 15px; background: rgba(0,30,0,0.8); color: #0f0; border: 1px solid #0f0; cursor: pointer; font-family: 'Courier New', Courier, monospace; font-weight: bold; z-index: 9999; text-shadow: 0 0 5px #0f0; box-shadow: 0 0 10px #020; transition: 0.2s; display: none;}
+        #cheatToggleBtn:hover { background: #0f0; color: #000; box-shadow: 0 0 15px #0f0; }
+        #cheatMenu { position: absolute; top: 70px; right: 20px; width: 320px; background: rgba(0, 15, 0, 0.95); border: 2px solid #0f0; color: #0f0; font-family: 'Courier New', Courier, monospace; padding: 15px; box-sizing: border-box; z-index: 9998; box-shadow: 0 0 20px #0f0; display: none; backdrop-filter: blur(5px); pointer-events: auto; }
+        #cheatMenu h3 { margin: 0 0 15px 0; text-align: center; border-bottom: 1px solid #0f0; padding-bottom: 8px; font-weight: bold; }
+        #cheatMenu label { display: block; margin: 8px 0; cursor: pointer; font-size: 16px; font-weight: bold;}
+        #cheatMenu input[type="checkbox"] { transform: scale(1.3); margin-right: 10px; accent-color: #0f0; }
+        #cheatMenu hr { border: none; border-top: 1px dashed #0f0; margin: 15px 0; opacity: 0.7; }
+        .cheat-btn { background: #020; color: #0f0; border: 1px solid #0f0; padding: 8px 10px; margin: 3px 1px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: inherit;}
+        .cheat-btn:hover { background: #0f0; color: #000; }
+        #cheatWepSelect { background: #000; color: #0f0; border: 1px solid #0f0; padding: 8px; font-family: inherit; font-size: 14px; width: 68%; outline: none; }
+    </style>
+</head>
+<body>
+
+<div id="loginUI">
+    <h1>使命召唤：几何战争</h1>
+    <h3>CALL OF DUTY: GEOMETRY WARFARE</h3>
+    <input type="text" id="playerNameInput" placeholder="输入特战队员代号..." maxlength="12">
+    <div class="login-btn-container">
+        <button class="login-btn" onclick="startGame(false)">系统登录</button>
+        <button class="login-btn" onclick="startGame(true)" style="background: #333; border-color: #888; color: #ccc;">游客接入</button>
+    </div>
+</div>
+
+<button id="cheatToggleBtn" onclick="toggleCheatMenu()">💻 外挂系统</button>
+<div id="cheatMenu">
+    <h3>外挂控制台 (HACK)</h3>
+    <label><input type="checkbox" onchange="playCheatSound(); window.cheats.godMode = this.checked"> 🛡️ 无限血量/护甲</label>
+    <label><input type="checkbox" onchange="playCheatSound(); window.cheats.infAmmo = this.checked"> 🔫 无限子弹泼水</label>
+    <label><input type="checkbox" onchange="playCheatSound(); window.cheats.oneHitKill = this.checked"> 💀 一击必杀 (秒杀)</label>
+    <label><input type="checkbox" onchange="playCheatSound(); window.cheats.infThrowables = this.checked"> 💣 无限战术投掷物</label>
+    <label><input type="checkbox" onchange="playCheatSound(); window.cheats.aimbot = this.checked"> 🎯 锁骨自瞄 (绿线连接)</label>
+    <label><input type="checkbox" onchange="playCheatSound(); window.cheats.esp = this.checked"> 👁️ 全图透视 (方框高亮)</label>
+    <hr>
+    <div style="display:flex; justify-content: space-between;">
+        <button class="cheat-btn" style="width: 48%;" onclick="cheatGiveMoney()">💰 +1万 资金</button>
+        <button class="cheat-btn" style="width: 48%;" onclick="cheatGiveEquip()">🎒 +全战术道具</button>
+    </div>
+    <hr>
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+        <select id="cheatWepSelect" onchange="playCheatSound()"></select>
+        <button class="cheat-btn" onclick="cheatGiveWep()" style="width:28%;">获取</button>
+    </div>
+    <hr>
+    <div style="display:flex; flex-wrap: wrap; gap: 4px; justify-content: center;">
+        <button class="cheat-btn" onclick="cheatGivePerk('juggernog')">厚血</button>
+        <button class="cheat-btn" onclick="cheatGivePerk('speedCola')">快手</button>
+        <button class="cheat-btn" onclick="cheatGivePerk('doubleTap')">双发</button>
+        <button class="cheat-btn" onclick="cheatGivePerk('staminUp')">神速</button>
+        <button class="cheat-btn" onclick="cheatGivePerk('muleKick')">骡子</button>
+        <button class="cheat-btn" onclick="cheatGivePerk('phDFlopper')">防爆</button>
+    </div>
+</div>
+
+<div id="ui" style="display: none;">
+    <h2 style="margin: 0;" id="gameTitleUI">使命召唤：几何战争</h2>
+    <p style="margin: 5px 0;">操作：WASD移动 | 滚轮/1,2切枪 | G破片雷 | Q震撼弹 | R换弹 | 4,5,6,7战术技能</p>
+</div>
+
+<div id="waveDisplay" style="display: none;">第 1 波</div>
+<div id="medalDisplay">💥 暴击</div>
+<div id="subtitleUI">HQ: 战术链路已建立。</div>
+
+<div id="equipmentUI" style="display: none;">
+    <div class="equip-slot" id="equip-4"><div class="equip-key">[4]</div><div class="equip-name">智能手枪</div><div class="equip-count" id="count-4">0</div></div>
+    <div class="equip-slot" id="equip-5"><div class="equip-key">[5]</div><div class="equip-name">死亡机器</div><div class="equip-count" id="count-5">0</div></div>
+    <div class="equip-slot" id="equip-6"><div class="equip-key">[6]</div><div class="equip-name">RPG火箭</div><div class="equip-count" id="count-6">0</div></div>
+    <div class="equip-slot" id="equip-7"><div class="equip-key">[7]</div><div class="equip-name">小队增援</div><div class="equip-count" id="count-7">0</div></div>
+</div>
+
+<div id="playerUI" style="display: none;">
+    <div class="avatar"></div>
+    <div class="player-info">
+        <div class="nickname" id="playerNickname">GUEST_7734</div>
+        <div class="status-bars-container">
+            <div class="status-bars">
+                <div class="bar-bg"><div class="hp-fill" id="hpBarFill" style="width: 100%;"></div><div class="bar-text">HP</div></div>
+                <div class="bar-bg"><div class="armor-fill" id="armorBarFill" style="width: 100%;"></div><div class="bar-text">ARMOR</div></div>
+            </div>
+            <div id="reviveUI">❤️ 自救: <span id="reviveCountText">0</span></div>
+        </div>
+        <div class="economy-stats">
+            <div class="coin-text">🟡 <span id="coinVal">0</span></div>
+            <div class="score-text">⭐ <span id="scoreVal">0</span></div>
+        </div>
+    </div>
+</div>
+
+<div id="perksDisplay" style="display: none;">
+    <div class="perk-icon" id="icon-juggernog" style="background:#ff2222; color:#fff;">厚血</div>
+    <div class="perk-icon" id="icon-speedCola" style="background:#22ff22; color:#000;">快手</div>
+    <div class="perk-icon" id="icon-doubleTap" style="background:#ffaa00; color:#000;">双发</div>
+    <div class="perk-icon" id="icon-staminUp" style="background:#ffff22; color:#000;">神速</div>
+    <div class="perk-icon" id="icon-muleKick" style="background:#aa00aa; color:#fff;">骡子踢</div>
+    <div class="perk-icon" id="icon-phDFlopper" style="background:#aa00ff; color:#fff;">防爆</div>
+</div>
+
+<div id="weaponUI" style="display: none;">
+    <div id="grenadeUI">[G] 破片雷: <span id="fragCountTxt" style="color:#0f0;">0</span> | [Q] 震撼弹: <span id="stunCountTxt" style="color:#0af;">0</span></div>
+    <div id="inactiveWeapons"></div>
+    <div id="weaponNameDisplay">USP 手枪</div><br>
+    <div id="ammoDisplay" style="display:inline-block;"><span id="currentAmmoTxt">12</span><span class="reserve-ammo"> / <span id="reserveAmmoTxt">48</span></span></div>
+</div>
+
+<div id="centerMsg">区域清理完毕，向右侧管道前进</div>
+<div id="interactionPrompt">按 [E] 购买武器</div>
+
+<div id="gameOverUI">
+    <h1 style="color: #f00; font-size: 56px; text-shadow: 0 0 20px #f00; margin: 0;">任务失败 (MIA)</h1>
+    <h2 id="finalScoreDisplay" style="color: #ff0; font-size: 32px; text-shadow: 0 0 10px #ff0;">最终得分: 0</h2>
+    <button class="btn-restart" onclick="restartGame()">重新部署</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+    window.cheats = { godMode: false, infAmmo: false, oneHitKill: false, infThrowables: false, aimbot: false, esp: false };
+
+    // --- 音效引擎 ---
+    let audioCtx = null;
+    function initAudio() {
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        } catch(e) { console.warn("AudioContext not supported", e); }
+    }
+    function playTone(freq, type, duration, vol) {
+        if(!audioCtx || audioCtx.state === 'suspended') return;
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+    function playNoise(duration, vol, lowpassFreq) {
+        if(!audioCtx || audioCtx.state === 'suspended') return;
+        let bufferSize = audioCtx.sampleRate * duration; let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        let data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        let noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+        let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = lowpassFreq;
+        let gain = audioCtx.createGain(); gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); noise.start();
+    }
+    
+    // 黑客外挂交互音效
+    function playCheatSound() {
+        if(!audioCtx) initAudio();
+        playTone(1500, 'square', 0.05, 0.1); setTimeout(() => playTone(2000, 'square', 0.08, 0.1), 80);
+    }
+
+    function playShootSound(wep) {
+        if (!wep) return;
+        if(wep.id === 'RAYGUN') playTone(800, 'square', 0.15, 0.08); 
+        else if(wep.id === 'RPG') playNoise(0.2, 0.4, 500); 
+        else if(wep.id === 'SMART_PISTOL') { playTone(1200, 'sawtooth', 0.1, 0.05); playNoise(0.05, 0.1, 4000); }
+        else playNoise(0.08, 0.2, 3000); 
+    }
+    function playExplosionSound() { playNoise(0.5, 0.8, 800); }
+    function playHitSound() { playTone(400, 'sawtooth', 0.05, 0.1); }
+    function playDeathSound() { playTone(100, 'sawtooth', 0.3, 0.3); playNoise(0.3, 0.5, 500); }
+    function playReloadSound() {
+        if(!audioCtx || audioCtx.state === 'suspended') return;
+        playTone(600, 'square', 0.05, 0.05); setTimeout(() => playTone(800, 'square', 0.1, 0.05), 150); setTimeout(() => playTone(500, 'square', 0.05, 0.05), 300);
+    }
+    function playStunSound() { playTone(2500, 'sine', 1.5, 0.1); playNoise(0.2, 0.5, 2000); }
+
+    // --- 高性能字幕生成器防卡死算法 ---
+    function generateSubtitles(baseArr, isZombie=false) {
+        let res = [...baseArr]; 
+        let suffixes = isZombie ? ["...", "！！", "...", "~~~"] : ["！", "...", "！！", "，见鬼！", "，干！", "，掩护我！", "，就现在！", "，死吧！", "，太弱了！", "，别挡路！"];
+        for (let i = 0; i < baseArr.length; i++) {
+            for (let j = 0; j < suffixes.length; j++) {
+                res.push(baseArr[i] + suffixes[j]);
+            }
+        }
+        return res.sort(() => Math.random() - 0.5);
+    }
+    const SUBS_PLAYER_KILL = generateSubtitles(["吃我一发", "太慢了", "送你下地狱", "就这？", "不堪一击", "来啊", "尝尝这个", "清扫完毕", "垃圾", "火力压制", "粉碎你", "爆头", "精确打击", "化为尘埃", "去死吧怪物"]);
+    const SUBS_PLAYER_LOWHP = generateSubtitles(["我需要掩体", "快撑不住了", "我中弹了", "流血了", "视线模糊了", "撑住", "还有谁", "需要药水", "防弹衣碎了", "急救", "掩护我", "状态极差", "痛死我了", "警告护甲失效", "最后一口气"]);
+    const SUBS_PLAYER_NOAMMO = generateSubtitles(["弹匣空了", "没子弹了", "咔咔...没弹药了", "给我弹药", "换弹", "弹药耗尽", "打空了", "需要补给", "切枪", "给我弹药箱", "空仓挂机", "没火力了", "需要Max Ammo", "子弹打光了", "只能肉搏了"]);
+    const SUBS_ZOMBIE = generateSubtitles(["啊啊啊啊嗷嗷~", "嗷嗷嗷~", "呃啊啊啊...", "吼...", "撕碎...", "脑子...", "血...", "死...", "加入我们...", "无法逃脱...", "饿...", "毁灭...", "杀...", "食物...", "不要挣扎...", "沉沦吧..."], true);
+    const SUBS_COMMS = generateSubtitles(["HQ: 侦测到大量能量反应", "HQ: 保持移动", "HQ: 补给箱已空投", "HQ: 注意侧翼", "HQ: 当心精英怪", "HQ: 坚持住", "HQ: 清理该区域", "HQ: 不要被包围", "HQ: 生命体征在下降", "HQ: 收到求救信号...", "HQ: 战术链路已建立", "HQ: 生化异变犬靠近", "HQ: 暴君级目标出现", "HQ: 死守阵地"]);
+
+    window.addEventListener('load', () => {
+        if (typeof THREE === 'undefined') return;
+
+        const WEAPONS = {
+            USP:    { id: 'USP', name: 'USP 手枪', fireRate: 0.25, damage: 20, count: 1, spread: 0.02, speed: 50, color: 0xffffff, price: 0, desc: '基础配枪', magSize: 12, reserve: 60, reloadTime: 1.5 },
+            DEAGLE: { id: 'DEAGLE', name: '沙漠之鹰', fireRate: 0.4, damage: 45, count: 1, spread: 0.01, speed: 70, color: 0xffaaaa, price: 5, desc: '大口径高伤', magSize: 7, reserve: 35, reloadTime: 2.0 },
+            MP5:    { id: 'MP5', name: 'MP5 冲锋枪', fireRate: 0.1, damage: 15, count: 1, spread: 0.06, speed: 60, color: 0x55ff55, price: 5, desc: '稳定冲锋', magSize: 30, reserve: 120, reloadTime: 2.2 },
+            P90:    { id: 'P90', name: 'P90 冲锋枪', fireRate: 0.07, damage: 12, count: 1, spread: 0.12, speed: 55, color: 0x00ff00, price: 7, desc: '极快射速', magSize: 50, reserve: 200, reloadTime: 2.5 },
+            VECTOR: { id: 'VECTOR', name: 'Vector 冲锋', fireRate: 0.05, damage: 10, count: 1, spread: 0.08, speed: 60, color: 0xaaff00, price: 8, desc: '泼水极速', magSize: 33, reserve: 150, reloadTime: 2.0 },
+            NOVA:   { id: 'NOVA', name: 'Nova 霰弹', fireRate: 0.8, damage: 15, count: 6, spread: 0.25, speed: 45, color: 0xffaa00, price: 7, desc: '近战爆发', magSize: 8, reserve: 40, reloadTime: 3.0 },
+            SPAS12: { id: 'SPAS12', name: 'SPAS-12', fireRate: 0.6, damage: 18, count: 8, spread: 0.3, speed: 45, color: 0xff5500, price: 10, desc: '强力面杀伤', magSize: 8, reserve: 40, reloadTime: 3.5 },
+            M4A1:   { id: 'M4A1', name: 'M4A1 步枪', fireRate: 0.11, damage: 24, count: 1, spread: 0.03, speed: 70, color: 0xaaaaff, price: 10, desc: '精准稳定', magSize: 30, reserve: 120, reloadTime: 2.1 },
+            AK47:   { id: 'AK47', name: 'AK-47 步枪', fireRate: 0.14, damage: 28, count: 1, spread: 0.05, speed: 65, color: 0xffff00, price: 12, desc: '强力火力', magSize: 30, reserve: 120, reloadTime: 2.5 },
+            AUG:    { id: 'AUG', name: 'AUG 步枪', fireRate: 0.12, damage: 26, count: 1, spread: 0.02, speed: 75, color: 0x55aaff, price: 12, desc: '远距离点射', magSize: 30, reserve: 90, reloadTime: 2.2 },
+            AWP:    { id: 'AWP', name: 'AWP 狙击枪', fireRate: 1.5, damage: 120, count: 1, spread: 0.0, speed: 120, color: 0xff00ff, price: 15, desc: '一击必杀', magSize: 10, reserve: 30, reloadTime: 3.5 },
+            RAYGUN: { id: 'RAYGUN', name: '射线枪', fireRate: 0.3, damage: 80, count: 1, spread: 0.01, speed: 40, color: 0x00ff00, price: 20, desc: '外星科技', magSize: 20, reserve: 80, reloadTime: 2.0 },
+            
+            // 特殊武器
+            RPG:    { id: 'RPG', name: 'RPG 火箭筒', fireRate: 1.0, damage: 600, count: 1, spread: 0, speed: 40, color: 0xff5500, price: 0, desc: '毁灭范围爆炸', magSize: 3, reserve: 9, reloadTime: 2.5, isExplosive: true, expRadius: 15 },
+            MINIGUN:{ id: 'MINIGUN', name: '死亡机器', fireRate: 0.04, damage: 30, count: 6, spread: 0.2, speed: 60, color: 0xff0000, price: 0, desc: '无限火力', magSize: 200, reserve: 0, reloadTime: 1.0 },
+            SMART_PISTOL: { id: 'SMART_PISTOL', name: '智能手枪', fireRate: 0.8, damage: 35, count: 10, spread: 3.14, speed: 30, color: 0x00aaff, price: 0, desc: '自动锁敌', magSize: 7, reserve: 14, reloadTime: 2.0, isHoming: true }
+        };
+
+        window.toggleCheatMenu = function() {
+            playCheatSound();
+            let menu = document.getElementById('cheatMenu'); menu.style.display = menu.style.display === 'none' || menu.style.display === '' ? 'block' : 'none';
+            let sel = document.getElementById('cheatWepSelect');
+            if(sel.options.length === 0) { for(let key in WEAPONS) { let opt = document.createElement('option'); opt.value = key; opt.innerText = WEAPONS[key].name; sel.appendChild(opt); } }
+        };
+        window.cheatGiveMoney = function() { playCheatSound(); coins += 10000; updateUI(); showCenterMsg("资金 +10000", "#0f0"); };
+        window.cheatGiveEquip = function() { playCheatSound(); equipment.revive+=5; equipment.minigun+=5; equipment.rpg+=5; equipment.squad+=5; equipment.smartPistol+=5; equipment.frag+=5; equipment.stun+=5; updateUI(); showCenterMsg("战术道具已补给", "#0f0"); };
+        window.cheatGiveWep = function() {
+            playCheatSound();
+            let wepId = document.getElementById('cheatWepSelect').value; let weaponData = WEAPONS[wepId]; if(!weaponData) return;
+            isSpecialActive = false; 
+            let newWep = { base: Object.assign({}, weaponData), ammo: Math.floor(weaponData.magSize * 1.5), reserve: Math.floor(weaponData.reserve * 1.5), isUpgraded: true };
+            newWep.base.name += " (HACK)"; newWep.base.damage *= 2; newWep.base.color = 0x00ff00;
+            let maxWeps = playerPerks.muleKick ? 3 : 2;
+            if (weaponInventory.length < maxWeps) { weaponInventory.push(newWep); activeWepIdx = weaponInventory.length - 1; } else { weaponInventory[activeWepIdx] = newWep; } 
+            isReloading = false; updateUI(); showCenterMsg("成功获取: " + newWep.base.name, "#0f0");
+        };
+        window.cheatGivePerk = function(perkType) {
+            playCheatSound();
+            if (!playerPerks[perkType]) {
+                playerPerks[perkType] = true;
+                if (perkType === 'juggernog') { playerObj.userData.maxHp = 250; playerObj.userData.hp = 250; } else if (perkType === 'staminUp') { playerObj.userData.speed = playerObj.userData.baseSpeed * 1.3; }
+                updateUI(); showCenterMsg("技能激活成功", "#0f0");
+            }
+        };
+
+        let scene, camera, renderer, clock, animId;
+        let playerObj, dummyMapPlane; 
+        let isGameStarted = false;
+        let playerName = "GUEST_7734";
+        let highScore = localStorage.getItem('geom_war_hs') || 0;
+        let windowAimbotLine = null; 
+
+        let score = 0, coins = 0, gameOver = false;
+        let mapState = 'ROOM', roomType = 'COMBAT', roomState = 'FIGHTING'; 
+        let currentRoom = 1, enemiesToSpawn = 3, enemiesSpawned = 0, spawnTimer = 1.0; 
+        
+        let weaponInventory = [{ base: WEAPONS.USP, ammo: WEAPONS.USP.magSize, reserve: WEAPONS.USP.reserve, isUpgraded: false }];
+        let activeWepIdx = 0;
+        let isReloading = false, reloadTimer = 0;
+        let playerPerks = { juggernog: false, speedCola: false, doubleTap: false, staminUp: false, muleKick: false, phDFlopper: false };
+        let equipment = { revive: 0, minigun: 0, rpg: 0, squad: 0, smartPistol: 0, frag: 3, stun: 3 };
+        let isSpecialActive = false, specialWeapon = null, specialAmmo = 0, specialReserveAmmo = 0;
+        let comboCount = 0, comboTimer = 0, medalTimer = 0, subTimer = 0;
+
+        const ROOM_SIZE = 60, WALL_HEIGHT = 6, CORRIDOR_WIDTH = 12;
+
+        let playerBullets = [], enemyBullets = [], enemies = [], walls = [], particles = [], drops = [], interactables = [], powerUps = [], minions = [], grenades = [];
+        const keys = { w: false, a: false, s: false, d: false, e: false, r: false, g: false, q: false };
+        let eKeyPressed = false, gKeyPressed = false, qKeyPressed = false;
+        let warningTimer = 0, warningText = "", centerMsgTimer = 0;
+        let mouseWorldPos = new THREE.Vector3(); 
+        const raycaster = new THREE.Raycaster(); const mouseCoord = new THREE.Vector2();
+        let closestEnemyForAim = null;
+
+        window.startGame = function(isGuest) {
+            let input = document.getElementById('playerNameInput').value.trim();
+            playerName = (isGuest || !input) ? "GUEST_" + Math.floor(Math.random()*1000) : input;
+            document.getElementById('playerNickname').innerText = playerName;
+            
+            document.getElementById('loginUI').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('waveDisplay').style.display = 'block';
+            document.getElementById('equipmentUI').style.display = 'flex';
+            document.getElementById('playerUI').style.display = 'flex';
+            document.getElementById('perksDisplay').style.display = 'flex';
+            document.getElementById('weaponUI').style.display = 'block';
+            document.getElementById('cheatToggleBtn').style.display = 'block';
+
+            initAudio(); 
+            isGameStarted = true;
+            if(animId) cancelAnimationFrame(animId); 
+            clock = new THREE.Clock(); 
+            animate();
+        }
+
+        function init3D() {
+            scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x1a1a2e, 0.015);
+            const width = window.innerWidth || 800, height = window.innerHeight || 600;
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000); camera.position.set(0, 45, 25); camera.lookAt(0, 0, -5); 
+            renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(width, height); renderer.setClearColor(0x1a1a2e); renderer.shadowMap.enabled = true; 
+            document.body.appendChild(renderer.domElement);
+            scene.add(new THREE.AmbientLight(0x333355, 1)); 
+            const dLight = new THREE.DirectionalLight(0xffffff, 0.6); dLight.position.set(10, 30, 10); dLight.castShadow = true; scene.add(dLight);
+
+            playerObj = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), new THREE.MeshPhongMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.5, shininess: 100 }));
+            // 确保出生在左侧门附近，彻底避免中心生成墙壁的重叠风险
+            playerObj.position.set(-ROOM_SIZE/2 + 5, 1.2, 0); 
+            playerObj.castShadow = true;
+            playerObj.userData = { hp: 100, maxHp: 100, armor: 50, maxArmor: 50, armorLevel: 1, baseSpeed: 18, speed: 18, radius: 1.2, lastShot: 0 };
+            scene.add(playerObj);
+
+            dummyMapPlane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({color: 0x000, transparent: true, opacity: 0})); dummyMapPlane.rotation.x = -Math.PI / 2; scene.add(dummyMapPlane);
+
+            const aimMat = new THREE.LineBasicMaterial({ color: 0x00ff00, depthTest: false, transparent: true, opacity: 0.5 });
+            const aimGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+            windowAimbotLine = new THREE.Line(aimGeo, aimMat);
+            windowAimbotLine.visible = false;
+            scene.add(windowAimbotLine);
+
+            setupRoomEnvironment();
+            
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('keydown', (e) => { 
+                if(!isGameStarted) return;
+                let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = true; 
+                if (k === '1' && weaponInventory.length >= 1 && !isSpecialActive) { activeWepIdx = 0; isReloading = false; updateUI(); }
+                if (k === '2' && weaponInventory.length >= 2 && !isSpecialActive) { activeWepIdx = 1; isReloading = false; updateUI(); }
+                if (k === '3' && weaponInventory.length >= 3 && !isSpecialActive) { activeWepIdx = 2; isReloading = false; updateUI(); }
+                
+                if (k === '4' && equipment.smartPistol > 0 && !isSpecialActive) { equipment.smartPistol--; activateSpecial(WEAPONS.SMART_PISTOL, 7, 14); }
+                if (k === '5' && equipment.minigun > 0 && !isSpecialActive) { equipment.minigun--; activateSpecial(WEAPONS.MINIGUN, 200, 0); }
+                if (k === '6' && equipment.rpg > 0 && !isSpecialActive) { equipment.rpg--; activateSpecial(WEAPONS.RPG, 3, 9); } 
+                if (k === '7' && equipment.squad > 0 && !isSpecialActive) { equipment.squad--; spawnMinions(); updateUI(); }
+            });
+            window.addEventListener('keyup', (e) => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = false; });
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('mousedown', () => playerObj.userData.isShooting = true);
+            window.addEventListener('mouseup', () => playerObj.userData.isShooting = false);
+            
+            window.addEventListener('wheel', (e) => {
+                if(!isGameStarted) return;
+                if (weaponInventory.length > 1 && !isSpecialActive) {
+                    activeWepIdx = (activeWepIdx + (e.deltaY > 0 ? 1 : -1) + weaponInventory.length) % weaponInventory.length;
+                    isReloading = false; updateUI();
+                }
+            });
+        }
+
+        function activateSpecial(wep, ammo, reserve) {
+            isSpecialActive = true; specialWeapon = Object.assign({}, wep); specialAmmo = ammo; specialReserveAmmo = reserve; isReloading = false; updateUI();
+        }
+
+        function throwGrenade(type) {
+            let aimDir;
+            if (window.cheats && window.cheats.aimbot && closestEnemyForAim) { aimDir = closestEnemyForAim.position.clone().sub(playerObj.position); } 
+            else { aimDir = mouseWorldPos.clone().sub(playerObj.position); }
+            aimDir.y = 0; if(aimDir.lengthSq()>0) aimDir.normalize(); else aimDir.set(1,0,0);
+            
+            const color = type === 'frag' ? 0x00ff00 : 0x00aaff;
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshPhongMaterial({color: color, emissive: color, emissiveIntensity: 0.8}));
+            mesh.position.copy(playerObj.position); mesh.position.y = 1.5;
+            mesh.userData = { type: type, vx: aimDir.multiplyScalar(30), timer: type === 'frag' ? 1.5 : 1.0 };
+            grenades.push(mesh); scene.add(mesh);
+            playNoise(0.2, 0.3, 1000); 
+        }
+
+        function spawnMinions() {
+            for(let i=0; i<2; i++) {
+                let pool = [WEAPONS.USP, WEAPONS.AK47, WEAPONS.M4A1, WEAPONS.NOVA, WEAPONS.P90];
+                if (Math.random() < 0.1) pool.push(WEAPONS.RPG); 
+                let randW = pool[Math.floor(Math.random() * pool.length)];
+
+                const minion = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 2.4, 16), new THREE.MeshPhongMaterial({color: 0x0055ff, emissive: 0x0022aa, emissiveIntensity: 0.5}));
+                minion.position.copy(playerObj.position); minion.position.x += (Math.random()-0.5)*4; minion.position.z += (Math.random()-0.5)*4; minion.position.y = 1.2; minion.castShadow = true;
+
+                const barWidth = 2;
+                const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(barWidth, 0.3), new THREE.MeshBasicMaterial({ color: 0x880000, side: THREE.DoubleSide })); hpBg.position.y = 1.5; hpBg.rotation.x = -Math.PI / 2; 
+                const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(barWidth, 0.3), new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide })); hpFg.position.y = 1.51; hpFg.rotation.x = -Math.PI / 2;
+                minion.add(hpBg); minion.add(hpFg);
+
+                minion.userData = { hp: 100, maxHp: 100, speed: 16, weapon: randW, lastShot: 0, radius: 1.0, hpBarFg: hpFg, barWidth: barWidth };
+                minions.push(minion); scene.add(minion);
+            }
+            showSubtitle("HQ: 小队已部署。", "#00aaff");
+        }
+
+        function showCenterMsg(text, color = "#0f0") { const el = document.getElementById('centerMsg'); el.innerText = text; el.style.color = color; el.style.textShadow = `0 0 10px ${color}`; el.style.display = 'block'; el.style.opacity = 1.0; centerMsgTimer = 2.0; }
+        function showWarning(text) { warningText = text; warningTimer = 2.0; }
+        function showSubtitle(text, color) { const el = document.getElementById('subtitleUI'); el.innerText = text; el.style.color = color; el.style.opacity = 1.0; subTimer = 2.0; }
+        function showMedal(text) { const m = document.getElementById('medalDisplay'); m.innerHTML = text; m.classList.add('medal-show'); medalTimer = 1.5; }
+
+        function startReload() {
+            if (isSpecialActive) {
+                let maxM = specialWeapon.magSize;
+                if (isReloading || specialAmmo >= maxM || specialReserveAmmo <= 0) return;
+                isReloading = true; reloadTimer = specialWeapon.reloadTime; updateUI(); playReloadSound();
+            } else {
+                let inv = weaponInventory[activeWepIdx];
+                let maxM = Math.floor(inv.base.magSize * (inv.isUpgraded ? 1.5 : 1));
+                if (isReloading || inv.ammo >= maxM || inv.reserve <= 0) return;
+                isReloading = true; reloadTimer = inv.base.reloadTime * (playerPerks.speedCola ? 0.5 : 1.0); updateUI(); playReloadSound();
+            }
+            if(Math.random() < 0.3) showSubtitle(SUBS_PLAYER_NOAMMO[Math.floor(Math.random()*SUBS_PLAYER_NOAMMO.length)], "#00ff00");
+        }
+
+        function onMouseMove(event) { mouseCoord.x = (event.clientX / window.innerWidth) * 2 - 1; mouseCoord.y = -(event.clientY / window.innerHeight) * 2 + 1; }
+        function updateMouseWorldPos() { raycaster.setFromCamera(mouseCoord, camera); const intersects = raycaster.intersectObject(dummyMapPlane); if (intersects.length > 0) mouseWorldPos.copy(intersects[0].point); }
+
+        function cleanupEntities() {
+            enemies.forEach(e => scene.remove(e)); enemies = []; playerBullets.forEach(b => scene.remove(b)); playerBullets = [];
+            enemyBullets.forEach(b => scene.remove(b)); enemyBullets = []; drops.forEach(d => scene.remove(d)); drops = [];
+            powerUps.forEach(p => scene.remove(p)); powerUps = []; interactables.forEach(i => { if(i.mesh) scene.remove(i.mesh); if(i.model) scene.remove(i.model); }); interactables = [];
+            minions.forEach(m => scene.remove(m)); minions = []; walls.forEach(w => scene.remove(w)); walls = []; grenades.forEach(g => scene.remove(g)); grenades = [];
+        }
+
+        function setupRoomEnvironment() {
+            cleanupEntities();
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_SIZE, ROOM_SIZE), new THREE.MeshPhongMaterial({ color: roomType === 'SHOP' ? 0x224422 : 0x222244, shininess: 10 }));
+            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; floor.userData = { isWall: false }; walls.push(floor); scene.add(floor);
+
+            spawnWall(0, ROOM_SIZE/2, ROOM_SIZE, 2); spawnWall(0, -ROOM_SIZE/2, ROOM_SIZE, 2); spawnWall(-ROOM_SIZE/2, 0, 2, ROOM_SIZE); 
+            if (roomState === 'FIGHTING') spawnWall(ROOM_SIZE/2, 0, 2, ROOM_SIZE); else { spawnWall(ROOM_SIZE/2, ROOM_SIZE/4+7, 2, ROOM_SIZE/2-14); spawnWall(ROOM_SIZE/2, -ROOM_SIZE/4-7, 2, ROOM_SIZE/2-14); }
+
+            if (roomType === 'COMBAT') {
+                const numWalls = Math.floor(Math.random() * 4) + 2;
+                for (let i = 0; i < numWalls; i++) {
+                    let wx, wz;
+                    // BUG FIX: 防止墙壁与玩家出生点重叠，绝对防卡死
+                    do { wx = (Math.random() - 0.5)*ROOM_SIZE*0.6; wz = (Math.random() - 0.5)*ROOM_SIZE*0.6; } 
+                    while (new THREE.Vector3(wx, 1.2, wz).distanceTo(playerObj.position) < 12);
+                    spawnWall(wx, wz, Math.random()*6+3, Math.random()*6+3);
+                }
+                spawnAmmoBox(getRandomSafePos().x, getRandomSafePos().z);
+                if (Math.random() < 0.4) spawnChest(getRandomSafePos().x, getRandomSafePos().z);
+                if (Math.random() < 0.3) {
+                    const perks = ['juggernog', 'speedCola', 'doubleTap', 'staminUp', 'muleKick', 'phDFlopper'];
+                    spawnPerkMachine(getRandomSafePos().x, getRandomSafePos().z, perks[Math.floor(Math.random()*perks.length)]);
+                }
+                if (Math.random() < 0.25) spawnUpgradeMachine(getRandomSafePos().x, getRandomSafePos().z);
+            } else if (roomType === 'SHOP') {
+                spawnShopItem(-15, 0, WEAPONS.AUG); spawnShopItem(-5, 0, WEAPONS.SPAS12); spawnShopItem(5, 0, WEAPONS.M4A1); spawnShopItem(15, 0, WEAPONS.RAYGUN); 
+                spawnArmorItem(-10, 10, 2, 10); spawnArmorItem(10, 10, 3, 20); spawnAmmoBox(0, 10);
+                spawnConsumableItem(-15, -10, 'squad', 15, '小队增援', '按7召唤随从');
+                spawnConsumableItem(-5, -10, 'smartPistol', 15, '智能手枪', '按4使用，自动锁敌');
+                spawnConsumableItem(5, -10, 'minigun', 20, '死亡机器', '按5使用，毁灭火力');
+                spawnConsumableItem(15, -10, 'rpg', 15, 'RPG火箭', '按6使用，大范围爆破');
+                spawnConsumableItem(0, 15, 'revive', 10, '自救针', '倒地自动满血复活');
+            }
+        }
+
+        function getRandomSafePos() {
+            let cx, cz; do { cx = (Math.random() - 0.5) * ROOM_SIZE * 0.8; cz = (Math.random() - 0.5) * ROOM_SIZE * 0.8; } while (new THREE.Vector3(cx, 1, cz).distanceTo(playerObj.position) < 15); return {x: cx, z: cz};
+        }
+
+        function setupCorridorEnvironment() {
+            cleanupEntities();
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(50, CORRIDOR_WIDTH), new THREE.MeshPhongMaterial({ color: 0x331133, shininess: 50 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; floor.userData = { isWall: false }; walls.push(floor); scene.add(floor);
+            spawnWall(0, CORRIDOR_WIDTH/2 + 1, 50, 2, 0x555555, 3); spawnWall(0, -CORRIDOR_WIDTH/2 - 1, 50, 2, 0x555555, 3); spawnWall(-25, 0, 2, CORRIDOR_WIDTH, 0x555555, 3);
+        }
+
+        function spawnWall(x, z, w, d, color=0x333366, h=WALL_HEIGHT) {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshPhongMaterial({ color: color, shininess: 5, emissive: 0x000033, emissiveIntensity: 0.1}));
+            wall.position.set(x, h/2, z); wall.receiveShadow = true; wall.castShadow = true; wall.userData = { isWall: true, x:x, z:z, halfW: w/2, halfD: d/2 };
+            walls.push(wall); scene.add(wall);
+        }
+
+        function spawnConsumableItem(x, z, type, price, name, desc) {
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1, 16), new THREE.MeshPhongMaterial({color: 0x444444})); base.position.set(x, 0.5, z); scene.add(base);
+            let color = type === 'revive' ? 0x00ffaa : (type === 'minigun' ? 0xff3333 : (type === 'rpg' ? 0xffaa00 : (type === 'smartPistol' ? 0x00ffff : 0x0055ff)));
+            const model = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshPhongMaterial({color: color, emissive: color, emissiveIntensity: 0.8})); model.position.set(x, 2.0, z); scene.add(model);
+            interactables.push({ mesh: base, model: model, price: price, name: name, desc: desc,
+                action: (self) => { equipment[type]++; createExplosion(model.position, color, 20, 1.0); scene.remove(model); scene.remove(base); interactables = interactables.filter(i => i !== self); updateUI(); }
+            });
+        }
+
+        function spawnArmorItem(x, z, level, price) {
+            const color = level === 2 ? 0x0088ff : 0xaa00ff;
+            const mesh = new THREE.Mesh(new THREE.TorusGeometry(1, 0.3, 16, 16), new THREE.MeshPhongMaterial({color: color, emissive: color, emissiveIntensity: 0.5}));
+            mesh.position.set(x, 1.5, z); scene.add(mesh);
+            interactables.push({ mesh: mesh, price: price, name: `Lv.${level} 防弹衣`, desc: `护甲上限 ${level * 50 + 50}`,
+                action: (self) => {
+                    if (playerObj.userData.armorLevel >= level) { showWarning("护甲等级已达标！"); coins += price;
+                    } else { playerObj.userData.armorLevel = level; playerObj.userData.maxArmor = level * 50 + 50; playerObj.userData.armor = playerObj.userData.maxArmor; createExplosion(mesh.position, color, 20, 1.0); scene.remove(mesh); interactables = interactables.filter(i => i !== self); }
+                }
+            });
+        }
+
+        function spawnAmmoBox(x, z) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 1.2, 1.2), new THREE.MeshPhongMaterial({color: 0x228822, emissive: 0x003300})); mesh.position.set(x, 0.6, z); mesh.castShadow = true; mesh.userData = { isWall: true, x:x, z:z, halfW: 1.0, halfD: 0.6 }; walls.push(mesh); scene.add(mesh);
+            interactables.push({ mesh: mesh, price: 1, name: '弹药补给箱', desc: '满血复活所有武器备弹',
+                action: (self) => {
+                    let filled = false;
+                    weaponInventory.forEach(inv => { let maxRes = inv.base.reserve * (inv.isUpgraded ? 1.5 : 1); if (inv.reserve < maxRes) { inv.reserve = maxRes; filled = true; } });
+                    if (!filled) { showWarning("常规弹药已满！"); coins += 1; } else { createExplosion(mesh.position, 0x00ff00, 10, 0.5); updateUI(); }
+                }
+            });
+        }
+
+        function spawnShopItem(x, z, weaponData, isFree = false) {
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 1, 16), new THREE.MeshPhongMaterial({color: 0x555555})); base.position.set(x, 0.5, z); scene.add(base);
+            const model = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 0.5), new THREE.MeshPhongMaterial({color: weaponData.color, emissive: weaponData.color, emissiveIntensity: 0.8})); model.position.set(x, 2.0, z); scene.add(model);
+
+            interactables.push({ mesh: base, model: model, price: isFree ? 0 : weaponData.price, name: weaponData.name, desc: weaponData.desc,
+                action: (self) => {
+                    isSpecialActive = false; let newWep = { base: weaponData, ammo: weaponData.magSize, reserve: weaponData.reserve, isUpgraded: false };
+                    let maxWeps = playerPerks.muleKick ? 3 : 2;
+                    if (weaponInventory.length < maxWeps) { weaponInventory.push(newWep); activeWepIdx = weaponInventory.length - 1; } else { weaponInventory[activeWepIdx] = newWep; } 
+                    isReloading = false; createExplosion(model.position, weaponData.color, 20, 1.0); scene.remove(model); scene.remove(base); interactables = interactables.filter(i => i !== self); updateUI();
+                }
+            });
+        }
+
+        function spawnChest(x, z) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 2.5), new THREE.MeshPhongMaterial({color: 0x8b4513, shininess: 10, emissive: 0x3a2005, emissiveIntensity: 0.5})); mesh.position.set(x, 1.25, z); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData = { isWall: true, isChest: true, x:x, z:z, halfW: 1.25, halfD: 1.25 }; walls.push(mesh); scene.add(mesh);
+            let rand = Math.random(); let type; if (rand < 0.3) type = 'COIN'; else if (rand < 0.5) type = 'WEAPON'; else if (rand < 0.7) type = 'PERK'; else type = 'MIMIC';
+            interactables.push({ mesh: mesh, isMimic: type === 'MIMIC', price: 0, name: '神秘宝箱', desc: '开启盲盒，祝你好运',
+                action: (self) => {
+                    scene.remove(mesh); walls = walls.filter(w => w !== mesh); interactables = interactables.filter(i => i !== self); createExplosion(mesh.position, 0xffff00, 15, 1);
+                    if (type === 'COIN') { let count = Math.floor(Math.random() * 4) + 3; for(let j=0; j<count; j++) dropCoin(x + (Math.random()-0.5)*3, z + (Math.random()-0.5)*3);
+                    } else if (type === 'WEAPON') { let wKeys = Object.keys(WEAPONS); spawnShopItem(x, z, WEAPONS[wKeys[Math.floor(Math.random() * wKeys.length)]], true); 
+                    } else if (type === 'PERK') { const perks = ['juggernog', 'speedCola', 'doubleTap', 'staminUp', 'muleKick', 'phDFlopper']; spawnPerkMachine(x, z, perks[Math.floor(Math.random()*perks.length)], true); }
+                }
+            });
+        }
+
+        function spawnPerkMachine(x, z, perkType, isFree = false) {
+            const pData = { juggernog: { color: 0xff0000, name: '厚血 (Juggernog)', desc: '生命上限+150', price: 10 }, speedCola: { color: 0x00ff00, name: '快手 (Speed Cola)', desc: '换弹极快', price: 10 }, doubleTap: { color: 0xffaa00, name: '双发 (Double Tap)', desc: '射击额外分裂', price: 15 }, staminUp:  { color: 0xffff00, name: '神速 (Stamin-Up)', desc: '移速大幅提升', price: 5 }, muleKick: { color: 0xaa00aa, name: '骡子踢 (Mule Kick)', desc: '携带第3把武器', price: 15 }, phDFlopper: { color: 0xaa00ff, name: '防爆博士 (PhD)', desc: '免疫自身爆炸伤害', price: 10 } };
+            const pd = pData[perkType];
+            const machine = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 4, 16), new THREE.MeshPhongMaterial({color: pd.color, emissive: pd.color, emissiveIntensity: 0.2})); machine.position.set(x, 2, z); machine.castShadow = true; machine.userData = { isWall: true, x:x, z:z, halfW: 1.2, halfD: 1.2 }; walls.push(machine); scene.add(machine);
+            interactables.push({ mesh: machine, price: isFree ? 0 : pd.price, name: pd.name, desc: pd.desc,
+                action: (self) => {
+                    if (playerPerks[perkType]) { showWarning("已拥有该能力！"); coins += (isFree ? 0 : pd.price); 
+                    } else {
+                        playerPerks[perkType] = true;
+                        if (perkType === 'juggernog') { playerObj.userData.maxHp = 250; playerObj.userData.hp = 250; } else if (perkType === 'staminUp') { playerObj.userData.speed = playerObj.userData.baseSpeed * 1.3; }
+                        createExplosion(machine.position, pd.color, 20, 1.0); scene.remove(machine); walls = walls.filter(w => w !== machine); interactables = interactables.filter(i => i !== self); updateUI();
+                    }
+                }
+            });
+        }
+
+        function spawnUpgradeMachine(x, z) {
+            const machine = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 2), new THREE.MeshPhongMaterial({color: 0x333333, emissive: 0x0088ff, emissiveIntensity: 0.5})); machine.position.set(x, 2, z); machine.castShadow = true; machine.userData = { isWall: true, x:x, z:z, halfW: 1.5, halfD: 1 }; walls.push(machine); scene.add(machine);
+            interactables.push({ mesh: machine, price: 20, name: '武器强化机', desc: '巨幅强化并重置弹药',
+                action: (self) => {
+                    let inv = weaponInventory[activeWepIdx];
+                    if (inv.isUpgraded) { showWarning("已是强化武器！"); coins += 20;
+                    } else {
+                        createExplosion(machine.position, 0x00ffff, 40, 2.0);
+                        let upg = Object.assign({}, inv.base);
+                        upg.name = upg.name + " (强化)"; upg.damage = Math.floor(upg.damage * 1.5); upg.magSize = Math.floor(upg.magSize * 1.5); upg.reserve = Math.floor(upg.reserve * 1.5); upg.count = upg.count + (upg.id === 'NOVA'||upg.id==='SPAS12' ? 2 : 1); upg.spread = upg.spread * 0.7; upg.color = 0x00ffff;
+                        inv.base = upg; inv.isUpgraded = true; inv.ammo = upg.magSize; inv.reserve = upg.reserve; isReloading = false;
+                        scene.remove(machine); walls = walls.filter(w => w !== machine); interactables = interactables.filter(i => i !== self); updateUI();
+                    }
+                }
+            });
+        }
+
+        function spawnMimic(x, z) {
+            let radius = 1.5, hp = 200, speed = 12, color = 0xff0000;
+            const enemy = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshPhongMaterial({ color: color, shininess: 30, emissive: 0x880000, emissiveIntensity: 0.8 })); enemy.position.set(x, 1.5, z); enemy.castShadow = true;
+            const barWidth = radius * 2;
+            const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(barWidth, 0.3), new THREE.MeshBasicMaterial({ color: 0x880000, side: THREE.DoubleSide })); hpBg.position.y = radius + 1.0; hpBg.rotation.x = -Math.PI / 2; 
+            const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(barWidth, 0.3), new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide })); hpFg.position.y = radius + 1.01; hpFg.rotation.x = -Math.PI / 2;
+            enemy.add(hpBg); enemy.add(hpFg);
+            enemy.userData = { type: 'mimic', hp: hp, maxHp: hp, radius: radius, speed: speed, color: color, lastShot: 0, hpBarFg: hpFg, barWidth: barWidth, stunTimer: 0 }; enemies.push(enemy); scene.add(enemy);
+        }
+
+        function dropCoin(x, z) {
+            const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.15, 16), new THREE.MeshPhongMaterial({color: 0xffd700, shininess: 100, emissive: 0xaa8800}));
+            coin.position.set(x, 0.3, z); coin.rotation.x = Math.PI / 2; coin.castShadow = true; drops.push(coin); scene.add(coin);
+        }
+
+        function dropPowerUp(x, z) {
+            const types = ['NUKE', 'MAX_AMMO', 'MAX_ARMOR', 'BONUS_COINS']; const t = types[Math.floor(Math.random() * types.length)];
+            let color = t==='NUKE'?0xffaa00:(t==='MAX_AMMO'?0x00ff00:(t==='MAX_ARMOR'?0x00aaff:0xffff00));
+            const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshPhongMaterial({color: color, emissive: color, emissiveIntensity: 0.5})); mesh.position.set(x, 1.0, z); mesh.userData = { type: t, color: color };
+            powerUps.push(mesh); scene.add(mesh);
+        }
+        
+        function dropGrenadeItem(x, z, type) {
+            let color = type === 'frag' ? 0x00ff00 : 0x00aaff;
+            const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.0, 8), new THREE.MeshPhongMaterial({color: color, emissive: color, emissiveIntensity: 0.5}));
+            mesh.position.set(x, 0.5, z); mesh.userData = { isGrenadeDrop: true, type: type };
+            drops.push(mesh); scene.add(mesh);
+        }
+
+        window.restartGame = function() {
+            if (animId) cancelAnimationFrame(animId); // 彻底清除旧渲染循环
+            for(let k in keys) keys[k] = false; 
+            
+            document.getElementById('gameOverUI').style.display = 'none';
+            score = 0; coins = 0; weaponInventory = [{ base: WEAPONS.USP, ammo: WEAPONS.USP.magSize, reserve: WEAPONS.USP.reserve, isUpgraded: false }]; activeWepIdx = 0; isReloading = false; isSpecialActive = false; 
+            equipment = { revive: 0, minigun: 0, rpg: 0, squad: 0, smartPistol: 0, frag: 3, stun: 3 };
+            currentRoom = 1; enemiesToSpawn = 3; enemiesSpawned = 0; spawnTimer = 1.0; mapState = 'ROOM'; roomType = 'COMBAT'; roomState = 'FIGHTING';
+            playerPerks = { juggernog: false, speedCola: false, doubleTap: false, staminUp: false, muleKick: false, phDFlopper: false };
+            playerObj.userData = { hp: 100, maxHp: 100, armor: 50, maxArmor: 50, armorLevel: 1, baseSpeed: 18, speed: 18, radius: 1.2, lastShot: 0 };
+            comboCount = 0; comboTimer = 0;
+            
+            playerObj.position.set(-ROOM_SIZE/2 + 5, 1.2, 0); 
+            setupRoomEnvironment(); 
+            camera.position.set(playerObj.position.x, 45, playerObj.position.z + 25);
+            clock.getDelta(); gameOver = false; updateUI(); 
+            
+            animate(); // 重启安全循环
+        }
+
+        init3D(); 
+
+        function animate() { 
+            if (!isGameStarted) { animId = requestAnimationFrame(animate); return; }
+            if (gameOver) { renderer.render(scene, camera); return; } 
+            animId = requestAnimationFrame(animate); 
+            update(); renderer.render(scene, camera); 
+        }
+
+        function killEnemy(e, j) {
+            playDeathSound();
+            if(e.userData.type === 'mimic') score += 100; else if(e.userData.type === 'elite') score += 150; else if(e.userData.type === 'tank') score += 50; else if(e.userData.type === 'bomber') score += 40; else if(e.userData.type === 'spreader') score += 30; else if(e.userData.type === 'shooter') score += 20; else if(e.userData.type === 'dog') score += 15; else score += 10; 
+            
+            let dropR = Math.random();
+            if (dropR < 0.3) dropCoin(e.position.x, e.position.z);
+            else if (dropR < 0.35) dropPowerUp(e.position.x, e.position.z);
+            else if (dropR < 0.40) dropGrenadeItem(e.position.x, e.position.z, 'frag');
+            else if (dropR < 0.45) dropGrenadeItem(e.position.x, e.position.z, 'stun');
+            
+            comboCount++; comboTimer = 2.5;
+            if (comboCount === 2) showMedal("✌️ 双杀");
+            else if (comboCount === 3) showMedal("🔥 三连杀");
+            else if (comboCount === 5) showMedal("💀 五连暴走");
+            else if (comboCount === 10) showMedal("☢️ 超神");
+
+            if (Math.random() < 0.2 && subTimer <= 0) showSubtitle(SUBS_PLAYER_KILL[Math.floor(Math.random()*SUBS_PLAYER_KILL.length)], "#00ff00");
+
+            scene.remove(e); enemies.splice(j, 1); createExplosion(e.position, e.userData.color, 15, 1.2); updateUI();
+        }
+
+        function update() {
+            const delta = Math.min(clock.getDelta(), 0.1); 
+            updateMouseWorldPos();
+            if (centerMsgTimer > 0) { centerMsgTimer -= delta; if (centerMsgTimer <= 0) document.getElementById('centerMsg').style.opacity = 0; }
+            if (medalTimer > 0) { medalTimer -= delta; if (medalTimer <= 0) document.getElementById('medalDisplay').classList.remove('medal-show'); }
+            if (comboTimer > 0) { comboTimer -= delta; if (comboTimer <= 0) comboCount = 0; }
+            if (subTimer > 0) { subTimer -= delta; if (subTimer <= 0) document.getElementById('subtitleUI').style.opacity = 0; }
+
+            if (Math.random() < 0.002 && subTimer <= 0) {
+                if (Math.random() < 0.5) showSubtitle(SUBS_COMMS[Math.floor(Math.random()*SUBS_COMMS.length)], "#00aaff");
+                else showSubtitle(SUBS_ZOMBIE[Math.floor(Math.random()*SUBS_ZOMBIE.length)], "#ff3333");
+            }
+            if (playerObj.userData.hp < 30 && Math.random() < 0.01 && subTimer <= 0) {
+                showSubtitle(SUBS_PLAYER_LOWHP[Math.floor(Math.random()*SUBS_PLAYER_LOWHP.length)], "#00ff00");
+            }
+
+            // 外挂透视框显
+            enemies.forEach(e => { if(e.userData.espBox) e.userData.espBox.visible = window.cheats.esp; });
+
+            // 自瞄系统
+            closestEnemyForAim = null;
+            let closestDistForAim = 9999;
+            if (window.cheats.aimbot && enemies.length > 0) {
+                enemies.forEach(e => {
+                    let d = playerObj.position.distanceTo(e.position);
+                    if (d < closestDistForAim) { closestDistForAim = d; closestEnemyForAim = e; }
+                });
+                if (closestEnemyForAim) {
+                    windowAimbotLine.geometry.setFromPoints([playerObj.position, closestEnemyForAim.position]);
+                    windowAimbotLine.visible = true;
+                } else { windowAimbotLine.visible = false; }
+            } else { windowAimbotLine.visible = false; }
+
+            // G 和 Q 投掷物 (外挂无限投掷物)
+            if (keys.g && !gKeyPressed && (equipment.frag > 0 || window.cheats.infThrowables)) {
+                gKeyPressed = true; if(!window.cheats.infThrowables) equipment.frag--; updateUI(); throwGrenade('frag');
+            }
+            if (!keys.g) gKeyPressed = false;
+            
+            if (keys.q && !qKeyPressed && (equipment.stun > 0 || window.cheats.infThrowables)) {
+                qKeyPressed = true; if(!window.cheats.infThrowables) equipment.stun--; updateUI(); throwGrenade('stun');
+            }
+            if (!keys.q) qKeyPressed = false;
+
+            for(let i=grenades.length-1; i>=0; i--) {
+                let g = grenades[i];
+                g.position.add(g.userData.vx.clone().multiplyScalar(delta));
+                g.userData.vx.multiplyScalar(0.95); 
+                g.userData.timer -= delta;
+                if (g.userData.timer <= 0) {
+                    if (g.userData.type === 'frag') {
+                        createExplosion(g.position, 0xff5500, 30, 2.0); playExplosionSound();
+                        for (let j = enemies.length - 1; j >= 0; j--) {
+                            let e = enemies[j];
+                            if (g.position.distanceTo(e.position) <= 15) {
+                                e.userData.hp -= 400; updateEnemyHpBar(e);
+                                if (e.userData.hp <= 0) killEnemy(e, j);
+                            }
+                        }
+                    } else if (g.userData.type === 'stun') {
+                        createExplosion(g.position, 0xffffff, 50, 3.0); playStunSound();
+                        for (let j = enemies.length - 1; j >= 0; j--) {
+                            let e = enemies[j];
+                            if (g.position.distanceTo(e.position) <= 20) { e.userData.stunTimer = 2.0; }
+                        }
+                    }
+                    scene.remove(g); grenades.splice(i, 1);
+                }
+            }
+
+            let moveVec = new THREE.Vector3(0, 0, 0);
+            if (keys.w) moveVec.z -= 1; if (keys.s) moveVec.z += 1; if (keys.a) moveVec.x -= 1; if (keys.d) moveVec.x += 1;
+            if (moveVec.lengthSq() > 0) {
+                moveVec.normalize().multiplyScalar(playerObj.userData.speed * delta);
+                let nextX = playerObj.position.x + moveVec.x; let nextZ = playerObj.position.z + moveVec.z; 
+                let collideX = false, collideZ = false; const pR = playerObj.userData.radius;
+                for (let wMesh of walls) {
+                    if(!wMesh.userData.isWall) continue; const w = wMesh.userData;
+                    if (!collideX && nextX + pR > w.x - w.halfW && nextX - pR < w.x + w.halfW && playerObj.position.z + pR > w.z - w.halfD && playerObj.position.z - pR < w.z + w.halfD) collideX = true;
+                    if (!collideZ && playerObj.position.x + pR > w.x - w.halfW && playerObj.position.x - pR < w.x + w.halfW && nextZ + pR > w.z - w.halfD && nextZ - pR < w.z + w.halfD) collideZ = true;
+                }
+                if (!collideX) playerObj.position.x = nextX; if (!collideZ) playerObj.position.z = nextZ;
+            }
+            camera.position.lerp(playerObj.position.clone().add(new THREE.Vector3(0, 45, 25)), 0.1);
+
+            for (let i = minions.length - 1; i >= 0; i--) {
+                let m = minions[i];
+                let distToPlayer = m.position.distanceTo(playerObj.position);
+                if (distToPlayer > 8) {
+                    let dir = playerObj.position.clone().sub(m.position).normalize();
+                    m.position.add(dir.multiplyScalar(m.userData.speed * delta));
+                }
+                
+                let target = null; let minDist = 40;
+                enemies.forEach(e => { let d = m.position.distanceTo(e.position); if (d < minDist) { minDist = d; target = e; } });
+                
+                m.userData.lastShot -= delta;
+                if (target && m.userData.lastShot <= 0) {
+                    let aimDirVec = target.position.clone().sub(m.position); aimDirVec.y = 0; 
+                    // 修复零向量计算
+                    if(aimDirVec.lengthSq() > 0) {
+                        let aimDir = aimDirVec.normalize();
+                        let wep = m.userData.weapon;
+                        for(let k=0; k<wep.count; k++) {
+                            let spread = (Math.random()-0.5)*wep.spread;
+                            let dir = aimDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), spread);
+                            spawnBullet(m.position, dir, wep.color, true, wep);
+                        }
+                        playShootSound(wep); m.userData.lastShot = wep.fireRate;
+                    }
+                }
+            }
+
+            if (mapState === 'ROOM') {
+                if (roomState === 'CLEARED' && playerObj.position.x > ROOM_SIZE/2 - 1.5) {
+                    mapState = 'CORRIDOR'; playerObj.position.set(-20, 1.2, 0); setupCorridorEnvironment();
+                    camera.position.set(-20, 30, 20); updateUI();
+                }
+            } else if (mapState === 'CORRIDOR') {
+                if (playerObj.position.x > 22) {
+                    mapState = 'ROOM'; currentRoom++;
+                    if (currentRoom % 3 === 0) { roomType = 'SHOP'; roomState = 'CLEARED'; } 
+                    else { roomType = 'COMBAT'; roomState = 'FIGHTING'; enemiesSpawned = 0; enemiesToSpawn = 3 + Math.floor(currentRoom * 1.5); spawnTimer = 1.0; }
+                    playerObj.position.set(-ROOM_SIZE/2 + 5, 1.2, 0); setupRoomEnvironment(); camera.position.set(-ROOM_SIZE/2+5, 45, 25); updateUI();
+                }
+            }
+
+            let promptEl = document.getElementById('interactionPrompt'); let canInteract = null; let closestDist = 999;
+            for (let i = interactables.length - 1; i >= 0; i--) {
+                let item = interactables[i]; if (item.model) item.model.rotation.y += delta * 2; 
+                let dist = playerObj.position.distanceTo(item.mesh.position);
+                if (item.isMimic && dist < 6) { 
+                    scene.remove(item.mesh); walls = walls.filter(w => w !== item.mesh);
+                    createExplosion(item.mesh.position, 0xff0000, 20, 1.5); spawnMimic(item.mesh.position.x, item.mesh.position.z);
+                    interactables.splice(i, 1); continue;
+                }
+                if (!item.isMimic && dist < 4 && dist < closestDist) { closestDist = dist; canInteract = item; }
+            }
+            if (warningTimer > 0) {
+                warningTimer -= delta; promptEl.style.display = 'block'; promptEl.innerText = warningText; promptEl.style.color = '#ff5555';
+            } else if (canInteract) {
+                promptEl.style.display = 'block'; let priceText = canInteract.price > 0 ? ` | ${canInteract.price} 金币` : ``;
+                promptEl.innerText = `按 [E] 交互: ${canInteract.name}${priceText}\n(${canInteract.desc})`; promptEl.style.color = coins >= canInteract.price ? '#55ff55' : '#ff5555';
+                if (keys.e && !eKeyPressed) {
+                    eKeyPressed = true;
+                    if (coins >= canInteract.price) { coins -= canInteract.price; canInteract.action(canInteract); updateUI(); } else { showWarning("资金不足！"); }
+                }
+            } else { promptEl.style.display = 'none'; }
+            if (!keys.e) eKeyPressed = false; 
+
+            for (let i = drops.length - 1; i >= 0; i--) { 
+                let d = drops[i]; d.rotation.y += delta * 3; 
+                if (playerObj.position.distanceTo(d.position) < playerObj.userData.radius + 1.5) { 
+                    if (d.userData.isGrenadeDrop) {
+                        if (d.userData.type === 'frag') equipment.frag++; else equipment.stun++;
+                        createExplosion(d.position, d.material.color.getHex(), 5, 0.5);
+                    } else {
+                        coins++; createExplosion(d.position, 0xffd700, 5, 0.5); 
+                    }
+                    scene.remove(d); drops.splice(i, 1); updateUI(); 
+                } 
+            }
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                let p = powerUps[i]; p.rotation.y += delta * 2; p.rotation.z += delta;
+                if (playerObj.position.distanceTo(p.position) < playerObj.userData.radius + 1.5) {
+                    if(p.userData.type === 'NUKE') { enemies.forEach(e => { createExplosion(e.position, e.userData.color, 15, 1.2); if (Math.random() < 0.3) dropCoin(e.position.x, e.position.z); playDeathSound(); }); score += enemies.length * 20; enemies.forEach(e => scene.remove(e)); enemies = []; showCenterMsg("战术核弹 (NUKE)！", "#ffaa00"); playExplosionSound();
+                    } else if(p.userData.type === 'MAX_AMMO') { weaponInventory.forEach(inv => { inv.reserve = inv.base.reserve * (inv.isUpgraded?1.5:1); inv.ammo = inv.base.magSize * (inv.isUpgraded?1.5:1); }); if(isSpecialActive) { specialAmmo = specialWeapon.magSize; specialReserveAmmo = specialWeapon.reserve; } showCenterMsg("弹药满载 (MAX AMMO)！", "#00ff00"); equipment.frag+=3; equipment.stun+=3;
+                    } else if(p.userData.type === 'MAX_ARMOR') { playerObj.userData.armor = playerObj.userData.maxArmor; showCenterMsg("护甲满载 (MAX ARMOR)！", "#00aaff");
+                    } else if(p.userData.type === 'BONUS_COINS') { coins += 50; showCenterMsg("资金奖励 (BONUS COINS)！", "#ffff00"); }
+                    createExplosion(p.position, p.userData.color, 15, 0.8); scene.remove(p); powerUps.splice(i, 1); updateUI();
+                }
+            }
+
+            let activeInv = weaponInventory[activeWepIdx];
+            let activeMaxM = Math.floor(activeInv.base.magSize * (activeInv.isUpgraded ? 1.5 : 1));
+
+            if (keys.r && !isReloading) {
+                if (isSpecialActive) {
+                    let sMaxM = specialWeapon.magSize;
+                    if (specialAmmo < sMaxM && specialReserveAmmo > 0) { isReloading = true; reloadTimer = specialWeapon.reloadTime; updateUI(); playReloadSound(); }
+                } else if (activeInv.ammo < activeMaxM && activeInv.reserve > 0) { isReloading = true; reloadTimer = activeInv.base.reloadTime * (playerPerks.speedCola ? 0.5 : 1.0); updateUI(); playReloadSound(); }
+            }
+
+            if (isReloading) {
+                reloadTimer -= delta;
+                if (reloadTimer <= 0) {
+                    isReloading = false; 
+                    if (isSpecialActive) {
+                        let needed = specialWeapon.magSize - specialAmmo;
+                        if (specialReserveAmmo >= needed) { specialAmmo += needed; specialReserveAmmo -= needed; } else { specialAmmo += specialReserveAmmo; specialReserveAmmo = 0; }
+                    } else {
+                        let needed = activeMaxM - activeInv.ammo;
+                        if (activeInv.reserve >= needed) { activeInv.ammo += needed; activeInv.reserve -= needed; } else { activeInv.ammo += activeInv.reserve; activeInv.reserve = 0; }
+                    }
+                    updateUI();
+                }
+            }
+
+            let curWep = isSpecialActive ? specialWeapon : activeInv.base;
+            let curAmmo = isSpecialActive ? specialAmmo : activeInv.ammo;
+            let curRes = isSpecialActive ? specialReserveAmmo : activeInv.reserve;
+
+            playerObj.userData.lastShot -= delta;
+            if (playerObj.userData.isShooting && playerObj.userData.lastShot <= 0 && mapState === 'ROOM' && !isReloading) {
+                if (curAmmo > 0 || (window.cheats && window.cheats.infAmmo)) {
+                    let aimDir;
+                    if (window.cheats && window.cheats.aimbot && closestEnemyForAim) {
+                        aimDir = closestEnemyForAim.position.clone().sub(playerObj.position);
+                    } else {
+                        aimDir = mouseWorldPos.clone().sub(playerObj.position);
+                    }
+                    aimDir.y = 0; 
+
+                    if(aimDir.lengthSq() > 0) {
+                        aimDir.normalize();
+                        if (!window.cheats.infAmmo) { if (isSpecialActive) specialAmmo--; else activeInv.ammo--; }
+
+                        let finalCount = playerPerks.doubleTap ? curWep.count + 1 : curWep.count;
+                        for(let k = 0; k < finalCount; k++) {
+                            let spreadAngle = curWep.id === 'SMART_PISTOL' ? (Math.random() - 0.5) * curWep.spread : (Math.random() - 0.5) * curWep.spread;
+                            let dir = aimDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), spreadAngle);
+                            spawnBullet(playerObj.position, dir, curWep.color, true, curWep); 
+                        }
+                        playShootSound(curWep); playerObj.userData.lastShot = curWep.fireRate * (playerPerks.doubleTap ? 0.75 : 1.0);
+                        
+                        if (isSpecialActive && specialAmmo <= 0 && specialReserveAmmo <= 0 && (!window.cheats || !window.cheats.infAmmo)) { isSpecialActive = false; }
+                        else if (!isSpecialActive && activeInv.ammo <= 0 && activeInv.reserve > 0 && (!window.cheats || !window.cheats.infAmmo)) { startReload(); }
+                        else if (isSpecialActive && specialAmmo <= 0 && specialReserveAmmo > 0 && (!window.cheats || !window.cheats.infAmmo)) { startReload(); }
+                        
+                        if ((!isSpecialActive && activeInv.ammo === 0 && activeInv.reserve === 0 && (!window.cheats || !window.cheats.infAmmo)) && subTimer <= 0) {
+                            showSubtitle(SUBS_PLAYER_NOAMMO[Math.floor(Math.random()*SUBS_PLAYER_NOAMMO.length)], "#00ff00");
+                        }
+                        updateUI();
+                    }
+                } else if (curRes > 0) { startReload(); } 
+            }
+
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                let b = playerBullets[i]; b.position.add(b.userData.vx.clone().multiplyScalar(delta)); b.userData.life -= delta;
+                
+                if (b.userData.isHoming) {
+                    let target = null; let minDist = 30;
+                    for (let e of enemies) { let d = b.position.distanceTo(e.position); if (d < minDist) { minDist = d; target = e; } }
+                    if (target) {
+                        let dirVec = target.position.clone().sub(b.position);
+                        if(dirVec.lengthSq() > 0) {
+                            let dir = dirVec.normalize();
+                            let spd = b.userData.vx.length();
+                            b.userData.vx.lerp(dir.multiplyScalar(spd), 0.15); 
+                        }
+                    }
+                }
+
+                let hitWall = false; if (b.userData.life <= 0) hitWall = true; else { for (let w of walls) { if (checkBulletWallCollision(b, w)) { hitWall = true; break; } } }
+                
+                let exploded = false;
+                if (!hitWall) {
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        let e = enemies[j];
+                        if (b.position.distanceTo(e.position) < e.userData.radius + 0.3) {
+                            if (b.userData.isExplosive) { hitWall = true; } 
+                            else {
+                                let isCrit = Math.random() < 0.15;
+                                let dmg = b.userData.damage * (isCrit ? 2 : 1);
+                                if (window.cheats && window.cheats.oneHitKill) dmg = 999999;
+                                e.userData.hp -= dmg; updateEnemyHpBar(e); scene.remove(b); playerBullets.splice(i, 1);
+                                createExplosion(b.position, b.material.color.getHex(), 3, 0.3); playHitSound();
+                                if (isCrit) showMedal("💥 暴击");
+                                if (e.userData.hp <= 0) killEnemy(e, j);
+                                exploded = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (exploded) continue;
+
+                if (hitWall) { 
+                    if (b.userData.isExplosive) {
+                        createExplosion(b.position, 0xff5500, 40, 3.0); playExplosionSound();
+                        for (let j = enemies.length - 1; j >= 0; j--) {
+                            let e = enemies[j];
+                            if (b.position.distanceTo(e.position) <= b.userData.expRadius) {
+                                let dmg = b.userData.damage;
+                                if (window.cheats && window.cheats.oneHitKill) dmg = 999999;
+                                e.userData.hp -= dmg; updateEnemyHpBar(e);
+                                if (e.userData.hp <= 0) killEnemy(e, j);
+                            }
+                        }
+                        for(let j=minions.length-1; j>=0; j--){
+                            if (minions[j].position.distanceTo(b.position) <= b.userData.expRadius) {
+                                minions[j].userData.hp -= b.userData.damage; updateEnemyHpBar(minions[j]);
+                                if(minions[j].userData.hp <= 0){ createExplosion(minions[j].position, 0x0055ff, 20, 1); scene.remove(minions[j]); minions.splice(j,1); playDeathSound(); }
+                            }
+                        }
+                        if (playerObj.position.distanceTo(b.position) <= b.userData.expRadius && !playerPerks.phDFlopper) { applyDamageToPlayer(50); updateUI(); checkGameOver(); }
+                    }
+                    scene.remove(b); playerBullets.splice(i, 1); continue; 
+                }
+            }
+
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let b = enemyBullets[i]; b.position.add(b.userData.vx.clone().multiplyScalar(delta));
+                if (walls.some(w => checkBulletWallCollision(b, w)) || b.position.length() > 200) { scene.remove(b); enemyBullets.splice(i, 1); continue; }
+                
+                if (b.position.distanceTo(playerObj.position) < playerObj.userData.radius + 0.3) { 
+                    applyDamageToPlayer(15); scene.remove(b); enemyBullets.splice(i, 1); createExplosion(playerObj.position, 0x00ffff, 10, 0.8); updateUI(); checkGameOver(); continue;
+                }
+                
+                let hitMinion = false;
+                for(let j=minions.length-1; j>=0; j--){
+                    if (b.position.distanceTo(minions[j].position) < minions[j].userData.radius + 0.3) {
+                        minions[j].userData.hp -= 15; updateEnemyHpBar(minions[j]); playHitSound();
+                        scene.remove(b); enemyBullets.splice(i, 1); createExplosion(minions[j].position, 0x0055ff, 5, 0.5); hitMinion = true;
+                        if(minions[j].userData.hp <= 0){ createExplosion(minions[j].position, 0x0055ff, 20, 1); scene.remove(minions[j]); minions.splice(j,1); playDeathSound(); }
+                        break;
+                    }
+                }
+                if(hitMinion) continue;
+            }
+
+            if (mapState === 'ROOM' && roomType === 'COMBAT' && roomState === 'FIGHTING') {
+                spawnTimer -= delta; if (enemiesSpawned < enemiesToSpawn && spawnTimer <= 0) { spawnEnemy3D(); enemiesSpawned++; spawnTimer = Math.max(0.5, 2.0 - currentRoom * 0.15); }
+                if (enemiesSpawned >= enemiesToSpawn && enemies.length === 0) { roomState = 'CLEARED'; setupRoomEnvironment(); showCenterMsg("区域清理完毕，向右侧管道前进"); updateUI(); }
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i]; 
+                
+                if (e.userData.stunTimer > 0) {
+                    e.userData.stunTimer -= delta; continue; 
+                }
+
+                let targetPos = playerObj.position.clone(); let targetObj = playerObj; let minDist = e.position.distanceTo(playerObj.position);
+                minions.forEach(m => { let d = e.position.distanceTo(m.position); if (d < minDist - 5) { minDist = d; targetPos = m.position.clone(); targetObj = m; } });
+
+                const aimDirVec = targetPos.clone().sub(e.position);
+                if (aimDirVec.lengthSq() > 0) { 
+                    const aimDir = aimDirVec.normalize(); 
+                    if (['basic', 'tank', 'mimic', 'dog', 'bomber', 'elite'].includes(e.userData.type)) { e.position.add(aimDir.multiplyScalar(e.userData.speed * delta)); } 
+                }
+                e.userData.lastShot -= delta;
+                
+                if (e.userData.type === 'bomber' && minDist < targetObj.userData.radius + e.userData.radius + 1.5) {
+                    createExplosion(e.position, 0xff5500, 30, 2.0); playExplosionSound();
+                    if(targetObj === playerObj) { applyDamageToPlayer(40); updateUI(); checkGameOver(); }
+                    else { targetObj.userData.hp -= 40; updateEnemyHpBar(targetObj); if(targetObj.userData.hp <= 0){ createExplosion(targetObj.position, 0x0055ff, 20, 1); scene.remove(targetObj); minions.splice(minions.indexOf(targetObj),1); playDeathSound(); } }
+                    minions.forEach(m => { if(m !== targetObj && m.position.distanceTo(e.position) <= 15) { m.userData.hp -= 40; updateEnemyHpBar(m); if(m.userData.hp<=0){createExplosion(m.position, 0x0055ff, 20, 1); scene.remove(m); minions.splice(minions.indexOf(m),1); playDeathSound();} } });
+                    scene.remove(e); enemies.splice(i, 1); continue;
+                }
+
+                // AI 安全射击
+                if (e.userData.lastShot <= 0) {
+                    let aiShootDirVec = targetPos.clone().sub(e.position); aiShootDirVec.y = 0;
+                    if(aiShootDirVec.lengthSq() > 0) {
+                        let aiAimDir = aiShootDirVec.normalize();
+                        if (e.userData.type === 'shooter') { if (minDist < 40) { spawnBullet(e.position, aiAimDir, 0xff00ff, false, {speed:25, damage:15}); playShootSound({id:'AK47'}); e.userData.lastShot = 1.5; } } 
+                        else if (e.userData.type === 'spreader') { if (minDist < 30) { for (let k = 0; k < 8; k++) { let angle = (Math.PI * 2 / 8) * k; let spreadDir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)); spawnBullet(e.position, spreadDir, 0xff9900, false, {speed:20, damage:10}); } playShootSound({id:'AK47'}); e.userData.lastShot = 2.5; } }
+                        else if (e.userData.type === 'elite') {
+                            if (minDist < 40) { for (let k = -1; k <= 1; k++) { let spreadDir = aiAimDir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), k * 0.2); spawnBullet(e.position, spreadDir, 0xffffff, false, {speed:30, damage:20}); } playShootSound({id:'AK47'}); e.userData.lastShot = 1.5; }
+                        }
+                    }
+                }
+
+                if (e.userData.type !== 'bomber' && minDist < targetObj.userData.radius + e.userData.radius) { 
+                    let dmg = (e.userData.type === 'mimic' ? delta*60 : (e.userData.type === 'tank' || e.userData.type === 'elite' ? delta*40 : delta*20));
+                    if(targetObj === playerObj) { applyDamageToPlayer(dmg); updateUI(); checkGameOver(); }
+                    else { targetObj.userData.hp -= dmg; updateEnemyHpBar(targetObj); if(targetObj.userData.hp <= 0){ createExplosion(targetObj.position, 0x0055ff, 20, 1); scene.remove(targetObj); minions.splice(minions.indexOf(targetObj),1); playDeathSound(); } }
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) { let p = particles[i]; p.position.add(p.userData.vx.clone().multiplyScalar(delta)); p.material.opacity -= delta / p.userData.maxLife; if (p.material.opacity <= 0) { scene.remove(p); particles.splice(i, 1); } }
+        }
+
+        function applyDamageToPlayer(dmg) {
+            if (window.cheats && window.cheats.godMode) return;
+            playHitSound();
+            if (playerObj.userData.armor > 0) { playerObj.userData.armor -= dmg; if (playerObj.userData.armor < 0) { playerObj.userData.hp += playerObj.userData.armor; playerObj.userData.armor = 0; } } 
+            else { playerObj.userData.hp -= dmg; }
+        }
+
+        function checkGameOver() { 
+            if (playerObj.userData.hp <= 0 && !gameOver && (!window.cheats || !window.cheats.godMode)) { 
+                if (equipment.revive > 0) {
+                    equipment.revive--; playerObj.userData.hp = playerObj.userData.maxHp;
+                    playerPerks = { juggernog: false, speedCola: false, doubleTap: false, staminUp: false, muleKick: false, phDFlopper: false };
+                    playerObj.userData.maxHp = 100; playerObj.userData.baseSpeed = 18; playerObj.userData.speed = 18;
+                    if (weaponInventory.length > 2) { weaponInventory.pop(); if (activeWepIdx > 1) activeWepIdx = 0; }
+                    showCenterMsg("自救成功！失去所有药水增益！", "#00ff00"); updateUI(); return;
+                }
+                gameOver = true; playDeathSound(); 
+                if (score > highScore) { highScore = score; localStorage.setItem('geom_war_hs', highScore); }
+                document.getElementById('finalScoreDisplay').innerHTML = `最终得分: ${score}<br><span style="font-size:24px; color:#aaa;">最高纪录: ${highScore}</span>`;
+                document.getElementById('gameOverUI').style.display = 'flex'; 
+            } 
+        }
+
+        function spawnBullet(pos, dir, color, isPlayerBullet, weaponData) {
+            const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 }));
+            bullet.position.copy(pos); bullet.position.y = 1.2; 
+            bullet.userData = { vx: dir.multiplyScalar(weaponData.speed), life: 2, damage: weaponData.damage, isExplosive: weaponData.isExplosive, expRadius: weaponData.expRadius, isHoming: weaponData.isHoming };
+            if (isPlayerBullet) playerBullets.push(bullet); else enemyBullets.push(bullet); scene.add(bullet);
+        }
+
+        function spawnEnemy3D() {
+            let typeStr, geometry, color, radius, hp, speed;
+            let pElite = currentRoom >= 4 ? 0.05 : 0; let pBomber = currentRoom >= 3 ? 0.10 : 0; let pTank = currentRoom >= 3 ? 0.15 : 0; let pSpreader = currentRoom >= 5 ? 0.10 : 0; let pDog = currentRoom >= 2 ? 0.15 : 0; let pShooter = currentRoom >= 2 ? 0.20 : 0;
+
+            let r = Math.random();
+            if (r < pElite) { typeStr = 'elite'; geometry = new THREE.BoxGeometry(3, 4, 3); color = 0xffffff; radius = 2.0; hp = 300; speed = 3.5; }
+            else if (r < pElite + pBomber) { typeStr = 'bomber'; geometry = new THREE.IcosahedronGeometry(1.4, 0); color = 0xff5500; radius = 1.4; hp = 50; speed = 7; }
+            else if (r < pElite + pBomber + pTank) { typeStr = 'tank'; geometry = new THREE.BoxGeometry(2.5, 2.5, 2.5); color = 0x880000; radius = 1.8; hp = 150; speed = 3; }
+            else if (r < pElite + pBomber + pTank + pSpreader) { typeStr = 'spreader'; geometry = new THREE.IcosahedronGeometry(1.6, 1); color = 0xff9900; radius = 1.6; hp = 80; speed = 2; }
+            else if (r < pElite + pBomber + pTank + pSpreader + pDog) { typeStr = 'dog'; geometry = new THREE.BoxGeometry(1, 1, 2); color = 0xaa5500; radius = 0.8; hp = 20; speed = 13; }
+            else if (r < pElite + pBomber + pTank + pSpreader + pDog + pShooter) { typeStr = 'shooter'; geometry = new THREE.ConeGeometry(1.3, 3, 4); color = 0x9900ff; radius = 1.3; hp = 40; speed = 4; }
+            else { typeStr = 'basic'; geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5); color = 0xff0055; radius = 1.0; hp = 30; speed = 8; }
+
+            const enemy = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: color, shininess: 30, emissive: color, emissiveIntensity: 0.3 }));
+            
+            // 安全坐标分配
+            do { enemy.position.x = (Math.random() - 0.5) * ROOM_SIZE * 0.8; enemy.position.z = (Math.random() - 0.5) * ROOM_SIZE * 0.8; enemy.position.y = (typeStr==='tank'||typeStr==='elite'?1.25:typeStr==='shooter'?1.5:0.75); } 
+            while (enemy.position.distanceTo(playerObj.position) < 20);
+            
+            enemy.castShadow = true;
+            
+            const edges = new THREE.EdgesGeometry(geometry);
+            const espBox = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff0000, depthTest: false }));
+            espBox.visible = window.cheats && window.cheats.esp;
+            enemy.add(espBox);
+
+            const barWidth = radius * 2; const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(barWidth, 0.3), new THREE.MeshBasicMaterial({ color: 0x880000, side: THREE.DoubleSide })); hpBg.position.y = radius + 0.8; hpBg.rotation.x = -Math.PI / 2; const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(barWidth, 0.3), new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide })); hpFg.position.y = radius + 0.81; hpFg.rotation.x = -Math.PI / 2;
+            enemy.add(hpBg); enemy.add(hpFg); enemy.userData = { type: typeStr, hp: hp, maxHp: hp, radius: radius, speed: speed, color: color, lastShot: 0, hpBarFg: hpFg, barWidth: barWidth, stunTimer: 0, espBox: espBox }; enemies.push(enemy); scene.add(enemy);
+        }
+
+        function updateEnemyHpBar(enemy) { let ratio = Math.max(0, enemy.userData.hp / enemy.userData.maxHp); enemy.userData.hpBarFg.scale.x = ratio; enemy.userData.hpBarFg.position.x = - (1 - ratio) * (enemy.userData.barWidth / 2); }
+        function createExplosion(pos, color, count, scale) { const pGeo = new THREE.BoxGeometry(0.2*scale, 0.2*scale, 0.2*scale); for (let i = 0; i < count; i++) { const p = new THREE.Mesh(pGeo, new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 1, blending: THREE.AdditiveBlending })); p.position.copy(pos); p.userData = { vx: new THREE.Vector3((Math.random() - 0.5) * 15 * scale, (Math.random() - 0.2) * 10 * scale, (Math.random() - 0.5) * 15 * scale), life: 1.0, maxLife: 0.5 + Math.random() * 0.5 }; particles.push(p); scene.add(p); } }
+        function checkBulletWallCollision(bullet, wMesh) { if(!wMesh.userData.isWall) return false; const w = wMesh.userData; const bp = bullet.position; return (bp.x > w.x - w.halfW && bp.x < w.x + w.halfW && bp.z > w.z - w.halfD && bp.z < w.z + w.halfD && bp.y < WALL_HEIGHT); }
+        function onWindowResize() { if (window.innerHeight === 0 || window.innerWidth === 0) return; camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+
+        function updateUI() {
+            if (window.cheats && window.cheats.godMode) { playerObj.userData.hp = playerObj.userData.maxHp; playerObj.userData.armor = playerObj.userData.maxArmor; }
+            document.getElementById('hpBarFill').style.width = Math.max(0, (playerObj.userData.hp / playerObj.userData.maxHp) * 100) + '%';
+            document.getElementById('armorBarFill').style.width = Math.max(0, (playerObj.userData.armor / playerObj.userData.maxArmor) * 100) + '%';
+
+            let waveText = roomType === 'SHOP' ? `第 ${currentRoom} 波 (补给区)` : `第 ${currentRoom} 波`; if (mapState === 'CORRIDOR') waveText = "前往下一区域...";
+            document.getElementById('waveDisplay').innerText = waveText;
+            document.getElementById('coinVal').innerText = coins; document.getElementById('scoreVal').innerText = score;
+            
+            document.getElementById('icon-juggernog').className = playerPerks.juggernog ? 'perk-icon perk-owned' : 'perk-icon';
+            document.getElementById('icon-speedCola').className = playerPerks.speedCola ? 'perk-icon perk-owned' : 'perk-icon';
+            document.getElementById('icon-doubleTap').className = playerPerks.doubleTap ? 'perk-icon perk-owned' : 'perk-icon';
+            document.getElementById('icon-staminUp').className = playerPerks.staminUp ? 'perk-icon perk-owned' : 'perk-icon';
+            document.getElementById('icon-muleKick').className = playerPerks.muleKick ? 'perk-icon perk-owned' : 'perk-icon';
+            document.getElementById('icon-phDFlopper').className = playerPerks.phDFlopper ? 'perk-icon perk-owned' : 'perk-icon';
+            
+            document.getElementById('count-4').innerText = equipment.smartPistol; document.getElementById('equip-4').className = equipment.smartPistol > 0 ? 'equip-slot equip-active' : 'equip-slot';
+            document.getElementById('count-5').innerText = equipment.minigun; document.getElementById('equip-5').className = equipment.minigun > 0 ? 'equip-slot equip-active' : 'equip-slot';
+            document.getElementById('count-6').innerText = equipment.rpg; document.getElementById('equip-6').className = equipment.rpg > 0 ? 'equip-slot equip-active' : 'equip-slot';
+            document.getElementById('count-7').innerText = equipment.squad; document.getElementById('equip-7').className = equipment.squad > 0 ? 'equip-slot equip-active' : 'equip-slot';
+            
+            document.getElementById('reviveCountText').innerText = equipment.revive;
+            document.getElementById('fragCountTxt').innerText = (window.cheats && window.cheats.infThrowables) ? "∞" : equipment.frag;
+            document.getElementById('stunCountTxt').innerText = (window.cheats && window.cheats.infThrowables) ? "∞" : equipment.stun;
+
+            let activeInv = isSpecialActive ? { base: specialWeapon, ammo: specialAmmo, reserve: specialReserveAmmo } : weaponInventory[activeWepIdx];
+            document.getElementById('weaponNameDisplay').innerText = activeInv.base.name;
+            
+            let inactiveHTML = "";
+            weaponInventory.forEach((inv, idx) => {
+                if (isSpecialActive || idx !== activeWepIdx) { inactiveHTML += `<div class="inactive-wep">[${idx+1}] ${inv.base.name}</div>`; }
+            });
+            document.getElementById('inactiveWeapons').innerHTML = inactiveHTML;
+
+            if (isReloading) {
+                document.getElementById('currentAmmoTxt').innerText = "RELOAD"; document.getElementById('currentAmmoTxt').style.fontSize = "36px"; document.querySelector('.reserve-ammo').style.display = 'none';
+            } else {
+                let showAmmo = (window.cheats && window.cheats.infAmmo) ? "∞" : activeInv.ammo;
+                document.getElementById('currentAmmoTxt').innerText = showAmmo; document.getElementById('reserveAmmoTxt').innerText = activeInv.reserve;
+                document.getElementById('currentAmmoTxt').style.fontSize = "56px"; document.querySelector('.reserve-ammo').style.display = (isSpecialActive && specialWeapon.id === 'MINIGUN') ? 'none' : 'inline';
+                document.getElementById('currentAmmoTxt').style.color = (activeInv.ammo === 0 && activeInv.reserve === 0 && !isSpecialActive && (!window.cheats || !window.cheats.infAmmo)) ? '#f00' : '#0ff';
+            }
+        }
+    });
+</script>
+</body>
+</html>
